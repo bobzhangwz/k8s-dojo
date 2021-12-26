@@ -1,0 +1,21 @@
+---
+# tasks file for snap-docker
+- name: Install docker
+  community.general.snap:
+    name: docker
+    state: present
+    channel: latest/stable
+
+- name: Create docker group
+  ansible.builtin.group:
+    name: docker
+    state: present
+    system: true
+
+- name: Append to docker group
+  ansible.builtin.user:
+    append: true
+    name: vagrant
+    groups: docker
+  notify:
+    - reload docker

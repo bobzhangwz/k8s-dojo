@@ -1,0 +1,7 @@
+---
+# handlers file for snap-docker
+
+- name: reload docker
+  ansible.builtin.shell: |
+    snap disable docker
+    snap enable docker
