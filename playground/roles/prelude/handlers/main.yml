@@ -1,0 +1,10 @@
+---
+# handlers file for prelude
+- name: Restart docker
+  service: name=docker state=restarted
+
+- name: Restarting sysctl
+  shell: sysctl --system
+
+- name: Pull k8s images
+  shell: kubeadm config images pull

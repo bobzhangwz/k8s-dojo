@@ -1,0 +1,60 @@
+---
+# tasks file for prelude
+- name: add Kubernetes apt-key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: add Kubernetes' APT repository
+  apt_repository:
+    repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
+    state: present
+    filename: 'kubernetes'
+
+- name: "Setting bridge-nf-call-iptables to 1"
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+  notify:
+    - Restarting sysctl
+
+- name: Install dependency
+  apt: name={{item}} state=present
+  loop:
+    - conntrack
+    - socat
+    - docker.io
+
+- name: Create docker group
+  ansible.builtin.group:
+    name: docker
+    state: present
+    system: true
+
+- name: Append to docker group
+  ansible.builtin.user:
+    append: true
+    name: vagrant
+    groups: docker
+  notify:
+    - Restart docker
+
+- name: write the config files for docker
+  copy:
+    content: '{ "exec-opts": ["native.cgroupdriver=systemd"] }'
+    dest: /etc/docker/daemon.json
+    mode: 644
+  notify:
+    - Restart docker
+
+- name: Install kubernetes dependency
+  apt: name={{item}} state=present
+  loop:
+    - kubelet
+    - kubectl
+    - kubeadm
+  notify:
+    - Pull k8s images
+
