@@ -7,3 +7,5 @@
 [master:children]
 misc
 
+[node:children]
+m1

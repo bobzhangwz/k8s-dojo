@@ -1,6 +1,6 @@
 ---
 
-- name: Create Kubernetes master node
+- name: Create Kubernetes slave node
   hosts: master
   become: yes
   gather_facts: false
@@ -40,3 +40,18 @@
         # kubeconfig: /etc/kubernetes/admin.conf
         # state: present
         # src: ~/flannel.yaml
+
+- name: Create Kubernetes nodes
+  hosts: node
+  become: yes
+  gather_facts: false
+  roles:
+    - prelude
+  tasks:
+    - name: Get add node command
+      shell: kubeadm token  create  --print-join-command
+      register: add_command
+      delegate_to: "{{ groups['master'][0]}}"
+
+    - name: run add command
+      shell: "{{add_command.stdout_lines[0]}}"
