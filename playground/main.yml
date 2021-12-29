@@ -51,7 +51,7 @@
     - name: run add command
       shell: "{{add_command.stdout_lines[0]}}"
 
-- name: Create Kubernetes nodes
+- name: setup local env
   hosts: m1
   gather_facts: false
   tasks:
