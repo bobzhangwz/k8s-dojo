@@ -59,3 +59,6 @@
   notify:
     - Pull k8s images
 
+- name: Flush handlers
+  meta: flush_handlers
+

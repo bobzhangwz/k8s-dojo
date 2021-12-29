@@ -1,24 +1,35 @@
 ---
 
-- name: Create Kubernetes slave node
+- name: Create Kubernetes master node
   hosts: master
   become: yes
   gather_facts: false
   roles:
     - prelude
+  vars:
+    host_ip: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
   tasks:
 
+    - name: Test k8s connection
+      wait_for:
+        host: '{{ host_ip }}'
+        port: 6443
+        timeout: 3
+      ignore_errors: yes
+      register: k8s_conn
+
     - name: Init k8s
-      shell: kubeadm init --apiserver-advertise-address 192.168.56.111 --pod-network-cidr=10.240.0.0/16
+      shell: kubeadm init --apiserver-advertise-address {{host_ip}} --pod-network-cidr=10.240.0.0/16 --ignore-preflight-errors=Mem
+      when: k8s_conn.failed
 
     - name: Wait for api endpoint start
       wait_for:
-        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+        host: '{{ host_ip }}'
         port: 6443
-        delay: 20
+        delay: 10
 
     - name: Setup flannel
-      shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+      shell: KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
     - name: Create a directory if it does not exist
       ansible.builtin.file:
@@ -35,7 +46,8 @@
         owner: vagrant
         group: vagrant
 
-- name: Create Kubernetes nodes
+
+- name: Create Kubernetes slave nodes
   hosts: node
   become: yes
   gather_facts: false
