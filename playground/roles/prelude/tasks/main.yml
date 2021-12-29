@@ -26,6 +26,7 @@
     - conntrack
     - socat
     - docker.io
+    - net-tools
 
 - name: Create docker group
   ansible.builtin.group:

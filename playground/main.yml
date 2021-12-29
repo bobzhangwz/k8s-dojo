@@ -11,6 +11,12 @@
     - name: Init k8s
       shell: kubeadm init --apiserver-advertise-address 192.168.56.111 --pod-network-cidr=10.240.0.0/16
 
+    - name: Wait for api endpoint start
+      wait_for:
+        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+        port: 6443
+        delay: 20
+
     - name: Setup flannel
       shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
@@ -29,18 +35,6 @@
         owner: vagrant
         group: vagrant
 
-    # - name: download flannel
-      # ansible.builtin.get_url:
-        # url: https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-        # dest: ~/flannel.yaml
-        # mode: '0664'
-#
-    # - name: Apply flannel
-      # kubernetes.core.k8s:
-        # kubeconfig: /etc/kubernetes/admin.conf
-        # state: present
-        # src: ~/flannel.yaml
-
 - name: Create Kubernetes nodes
   hosts: node
   become: yes
@@ -51,7 +45,37 @@
     - name: Get add node command
       shell: kubeadm token  create  --print-join-command
       register: add_command
+      run_once: true
       delegate_to: "{{ groups['master'][0]}}"
 
     - name: run add command
       shell: "{{add_command.stdout_lines[0]}}"
+
+- name: Create Kubernetes nodes
+  hosts: m1
+  gather_facts: false
+  tasks:
+    - name: Get admin config
+      slurp:
+        src: /etc/kubernetes/admin.conf
+      register: admin_conf
+      become: true
+      run_once: true
+      delegate_to: "{{ groups['master'][0]}}"
+
+    - name: Create a directory if it does not exist
+      local_action:
+        module: ansible.builtin.file
+        path: ~/.kube
+        state: directory
+      become: false
+      run_once: true
+
+    - name: Save admin config to local
+      become: false
+      local_action:
+        module: ansible.builtin.copy
+        dest: ~/.kube/vagrant-conf
+        content: '{{ admin_conf.content | b64decode }}'
+      run_once: true
+
