@@ -20,6 +20,7 @@
 
     - name: Init k8s
       shell: kubeadm init --apiserver-advertise-address {{host_ip}} --pod-network-cidr=10.240.0.0/16 --ignore-preflight-errors=Mem
+      # shell: kubeadm init --apiserver-advertise-address {{host_ip}} --ignore-preflight-errors=Mem
       when: k8s_conn.failed
 
     - name: Wait for api endpoint start
@@ -28,8 +29,9 @@
         port: 6443
         delay: 10
 
-    - name: Setup flannel
-      shell: KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+    - name: Setup cni
+      shell: KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+      # shell: KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
     - name: Create a directory if it does not exist
       ansible.builtin.file:
@@ -87,7 +89,7 @@
       become: false
       local_action:
         module: ansible.builtin.copy
-        dest: ~/.kube/vagrant-conf
+        dest: ~/.kube/vagrant_conf
         content: '{{ admin_conf.content | b64decode }}'
       run_once: true
 

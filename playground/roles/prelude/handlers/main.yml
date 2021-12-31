@@ -1,5 +1,8 @@
 ---
 # handlers file for prelude
+- name: Daemon reload
+  shell: systemctl daemon-reload
+
 - name: Restart docker
   service: name=docker state=restarted
 
@@ -8,3 +11,7 @@
 
 - name: Pull k8s images
   shell: kubeadm config images pull
+
+- name: Swapoff
+  shell: swapoff -a
+
